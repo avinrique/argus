@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard - Argus{% endblock %}
+{% block content %}
+<div class="animate-fade-in">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient mb-1">Leaderboard</h1>
+        <p class="text-sm text-gray-500">Top solvers ranked by successful solves</p>
+    </div>
+
+    {% if stats %}
+    <div class="glass rounded-2xl overflow-hidden glow-sm">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="text-left px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Rank</th>
+                    <th class="text-left px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">User</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Solves</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Success Rate</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Avg Score</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Avg Attempts</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in stats %}
+                <tr class="row-hover border-b border-white/5 last:border-0">
+                    <td class="px-6 py-4">
+                        {% if loop.index == 1 %}
+                        <span class="text-lg">&#129351;</span>
+                        {% elif loop.index == 2 %}
+                        <span class="text-lg">&#129352;</span>
+                        {% elif loop.index == 3 %}
+                        <span class="text-lg">&#129353;</span>
+                        {% else %}
+                        <span class="text-gray-500 font-mono text-sm">#{{ loop.index }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-gray-300 font-medium">{{ s.email }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="font-bold" style="color:#34d399">{{ s.successful_solves }}</span>
+                        <span class="text-gray-600">/{{ s.total_solves }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% set rate = (s.successful_solves / s.total_solves * 100)|round|int if s.total_solves > 0 else 0 %}
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full"
+                              style="{% if rate >= 70 %}color:#34d399;background:rgba(52,211,153,0.1){% elif rate >= 40 %}color:#fbbf24;background:rgba(251,191,36,0.1){% else %}color:#f87171;background:rgba(248,113,113,0.1){% endif %}">
+                            {{ rate }}%
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center text-gray-400 font-mono text-sm">{{ s.avg_score or 0 }}%</td>
+                    <td class="px-6 py-4 text-center text-gray-400 font-mono text-sm">{{ s.avg_attempts or 0 }}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-xs text-gray-500 font-mono">{{ s.problems_created }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-16 glass rounded-2xl">
+        <p class="text-gray-400">No solve data yet. Solve some problems to appear on the leaderboard!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

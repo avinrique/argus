@@ -1,0 +1,23 @@
+{
+    "title": "Two Sum",
+    "description": "Given an array of integers `nums` and an integer `target`, return the indices of the two numbers that add up to `target`.\n\nYou may assume that each input has exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.",
+    "function_signature": "def two_sum(nums, target)",
+    "constraints": "2 <= nums.length <= 10^4\n-10^9 <= nums[i] <= 10^9\n-10^9 <= target <= 10^9\nOnly one valid answer exists.",
+    "test_cases": [
+        {
+            "input": "[2, 7, 11, 15]\n9",
+            "expected_output": "[0, 1]",
+            "description": "Basic case"
+        },
+        {
+            "input": "[3, 2, 4]\n6",
+            "expected_output": "[1, 2]",
+            "description": "Non-adjacent elements"
+        },
+        {
+            "input": "[3, 3]\n6",
+            "expected_output": "[0, 1]",
+            "description": "Duplicate values"
+        }
+    ]
+}

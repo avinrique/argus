@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Log In - Argus{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto animate-slide-up">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gradient mb-2">Welcome back</h1>
+        <p class="text-gray-500">Log in to your Argus account</p>
+    </div>
+
+    {% if error %}
+    <div class="glass rounded-xl px-4 py-3 mb-6 border-l-4 border-red-500">
+        <p class="text-red-400 text-sm">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form method="POST" class="glass rounded-2xl p-8 space-y-5 glow-sm">
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="email">Email</label>
+            <input type="email" name="email" id="email" required autofocus
+                   value="{{ email or '' }}"
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm"
+                   placeholder="you@example.com">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="password">Password</label>
+            <input type="password" name="password" id="password" required
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm">
+        </div>
+        <button type="submit" class="btn-primary w-full text-white px-4 py-3 rounded-xl font-semibold text-sm">
+            Log In
+        </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+        Don't have an account? <a href="{{ url_for('signup') }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">Sign up</a>
+    </p>
+</div>
+{% endblock %}

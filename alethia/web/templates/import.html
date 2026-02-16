@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Import Problem - Argus{% endblock %}
+{% block content %}
+<div class="animate-slide-up">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient mb-1">Import Problem</h1>
+        <p class="text-sm text-gray-500">Upload a JSON file exported from Argus</p>
+    </div>
+
+    {% if error %}
+    <div class="glass rounded-xl px-4 py-3 mb-6 border-l-4 border-red-500">
+        <p class="text-red-400 text-sm">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/import" enctype="multipart/form-data" class="glass rounded-2xl p-8 glow-sm">
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-400 mb-2">Select JSON File</label>
+            <input type="file" name="file" accept=".json,application/json" required
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-500/20 file:text-indigo-300 hover:file:bg-indigo-500/30">
+            <p class="mt-2 text-xs text-gray-600">JSON must contain at least "title" and "description" fields.</p>
+        </div>
+        <button type="submit" class="btn-primary text-white px-8 py-3 rounded-xl font-semibold text-sm">
+            Import Problem
+        </button>
+    </form>
+</div>
+{% endblock %}

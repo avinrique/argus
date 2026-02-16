@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ pset.name }} - Problem Sets - Argus{% endblock %}
+{% block content %}
+<div class="animate-fade-in">
+    <div class="mb-8">
+        <a href="/sets" class="text-sm text-gray-500 hover:text-indigo-400 transition-colors">&larr; Back to sets</a>
+        <div class="flex items-center justify-between mt-2">
+            <div>
+                <h1 class="text-3xl font-bold text-gradient mb-1">{{ pset.name }}</h1>
+                {% if pset.description %}
+                <p class="text-sm text-gray-500">{{ pset.description }}</p>
+                {% endif %}
+            </div>
+            <form method="POST" action="/sets/{{ pset.id }}/delete" onsubmit="return confirm('Delete this set?')">
+                <button type="submit" class="text-sm text-red-400/60 hover:text-red-400 transition-colors">Delete Set</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Problem -->
+    {% if available_problems %}
+    <form method="POST" action="/sets/{{ pset.id }}/add" class="glass rounded-2xl p-6 mb-6 glow-sm">
+        <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-4">Add Problem</h2>
+        <div class="flex gap-4">
+            <select name="problem_id" required class="input-dark flex-1 rounded-xl px-4 py-3 text-sm">
+                <option value="">Select a problem...</option>
+                {% for p in available_problems %}
+                <option value="{{ p.id }}">{{ p.title }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl text-sm font-medium shrink-0">
+                Add
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- Problem List -->
+    {% if items %}
+    <div class="glass rounded-2xl overflow-hidden glow-sm">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="text-left px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">#</th>
+                    <th class="text-left px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Title</th>
+                    <th class="text-center px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider">Difficulty</th>
+                    <th class="text-right px-6 py-4 text-xs font-semibold text-indigo-400 uppercase tracking-wider"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="row-hover border-b border-white/5 last:border-0">
+                    <td class="px-6 py-4 text-gray-600 font-mono text-sm">{{ loop.index }}</td>
+                    <td class="px-6 py-4">
+                        <a href="/problem/{{ item.slug }}" class="text-indigo-300 hover:text-cyan-300 font-medium transition-colors">{{ item.title }}</a>
+                        {% if item.tags %}
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for tag in item.tags.split(',') if tag.strip() %}
+                            <span class="text-xs px-2 py-0.5 rounded-full text-cyan-400/70" style="background:rgba(6,182,212,0.1)">{{ tag.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% set diff_colors = {'easy': 'color:#34d399;background:rgba(52,211,153,0.1)', 'medium': 'color:#fbbf24;background:rgba(251,191,36,0.1)', 'hard': 'color:#f87171;background:rgba(248,113,113,0.1)'} %}
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="{{ diff_colors.get(item.difficulty, diff_colors.medium) }}">
+                            {{ item.difficulty|capitalize }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <form method="POST" action="/sets/{{ pset.id }}/remove/{{ item.slug }}" class="inline"
+                              onsubmit="this.action='/sets/{{ pset.id }}/remove/' + this.dataset.pid; return true;"
+                              data-pid="">
+                        </form>
+                        <a href="/problem/{{ item.slug }}" class="text-sm text-gray-500 hover:text-indigo-400 transition-colors">View &rarr;</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-16 glass rounded-2xl">
+        <p class="text-gray-400">No problems in this set yet. Add one above.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

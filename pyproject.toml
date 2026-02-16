@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argus"
+version = "0.1.0"
+description = "Argus — coding problem solver agent using a Generator-Verifier-Reviser loop (by EarthlingAIDTech)"
+requires-python = ">=3.10"
+dependencies = ["openai>=1.0", "httpx>=0.27", "flask>=3.0"]
+
+[tool.setuptools.packages.find]
+include = ["alethia*"]
+
+[project.scripts]
+alethia = "alethia.cli:main"

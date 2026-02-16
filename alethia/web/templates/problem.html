@@ -1,0 +1,593 @@
+{% extends "base.html" %}
+{% block title %}{{ problem.title }} - Argus{% endblock %}
+{% block content %}
+<div class="animate-fade-in">
+
+<!-- Header -->
+<div class="flex items-start justify-between mb-8">
+    <div>
+        <div class="flex items-center gap-3 mb-1">
+            <h1 class="text-3xl font-bold text-gradient">{{ problem.title }}</h1>
+            {% set diff_colors = {'easy': 'color:#34d399;background:rgba(52,211,153,0.1)', 'medium': 'color:#fbbf24;background:rgba(251,191,36,0.1)', 'hard': 'color:#f87171;background:rgba(248,113,113,0.1)'} %}
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="{{ diff_colors.get(problem.difficulty, diff_colors.medium) }}">
+                {{ problem.difficulty|capitalize }}
+            </span>
+            {% if not problem.is_public %}
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background:rgba(148,163,184,0.1);color:#94a3b8">
+                Private
+            </span>
+            {% endif %}
+        </div>
+        {% if problem.function_signature %}
+        <p class="text-sm text-cyan-400/70 font-mono mt-2">{{ problem.function_signature }}</p>
+        {% endif %}
+        {% if problem.tags %}
+        <div class="flex flex-wrap gap-1 mt-2">
+            {% for tag in problem.tags %}
+            <a href="{{ url_for('index', tag=tag) }}" class="text-xs px-2.5 py-1 rounded-full text-cyan-400/70 hover:text-cyan-300 transition-colors" style="background:rgba(6,182,212,0.1)">{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="flex items-center gap-3">
+        {% if solution_count > 0 %}
+        <a href="/problem/{{ slug }}/history" class="glass-light text-indigo-300 hover:text-indigo-200 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/10 flex items-center gap-2">
+            History
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold" style="background:rgba(99,102,241,0.2);color:#818cf8">{{ solution_count }}</span>
+        </a>
+        {% endif %}
+        <a href="/problem/{{ slug }}/export" class="glass-light text-gray-400 hover:text-gray-300 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/10">Export</a>
+        {% if is_owner %}
+        <a href="/problem/{{ slug }}/edit" class="glass-light text-indigo-300 hover:text-indigo-200 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/10">Edit</a>
+        <form method="POST" action="/problem/{{ slug }}/delete" onsubmit="return confirm('Delete this problem?')">
+            <button type="submit" class="text-sm text-red-400/60 hover:text-red-400 transition-colors">Delete</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if not current_user %}
+<div class="glass rounded-xl px-5 py-4 mb-6 border-l-4 border-amber-500/50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+    </svg>
+    <p class="text-amber-300/80 text-sm"><a href="/login" class="underline text-amber-300 hover:text-amber-200">Log in</a> to solve this problem.</p>
+</div>
+{% elif current_user and not has_llm_config %}
+<div class="glass rounded-xl px-5 py-4 mb-6 border-l-4 border-amber-500/50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+    </svg>
+    <p class="text-amber-300/80 text-sm">Configure your LLM provider in <a href="/settings" class="underline text-amber-300 hover:text-amber-200">Settings</a> to use the solver.</p>
+</div>
+{% endif %}
+
+<!-- Code Template -->
+{% if problem.code_template %}
+<div class="glass rounded-2xl p-8 mb-6">
+    <h2 class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-3">Code Template</h2>
+    <pre class="glass-light rounded-xl p-4 overflow-x-auto"><code style="color:#22d3ee" class="font-mono text-sm">{{ problem.code_template }}</code></pre>
+</div>
+{% endif %}
+
+<!-- Problem Details -->
+<div class="glass rounded-2xl p-8 mb-6 glow-sm">
+    <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-4">Description</h2>
+    <div class="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{{ problem.description }}</div>
+    {% if problem.images %}
+    <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mt-6 mb-3">Images</h2>
+    <div class="flex flex-wrap gap-4">
+        {% for img_url in problem.images %}
+        <a href="{{ img_url }}" target="_blank" class="block">
+            <img src="{{ img_url }}" alt="Problem image {{ loop.index }}" class="max-h-64 rounded-xl border border-white/10 hover:border-indigo-500/50 transition-colors">
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if problem.constraints %}
+    <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mt-6 mb-3">Constraints</h2>
+    <div class="text-gray-400 whitespace-pre-wrap text-sm font-mono glass-light rounded-xl p-4">{{ problem.constraints }}</div>
+    {% endif %}
+</div>
+
+<!-- Test Cases -->
+<div class="glass rounded-2xl p-8 mb-6">
+    <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-4">Test Cases</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="text-left py-3 px-3 text-xs font-medium text-gray-500">#</th>
+                    <th class="text-left py-3 px-3 text-xs font-medium text-gray-500">Input</th>
+                    <th class="text-left py-3 px-3 text-xs font-medium text-gray-500">Expected Output</th>
+                    <th class="text-left py-3 px-3 text-xs font-medium text-gray-500">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tc in problem.test_cases %}
+                <tr class="row-hover border-b border-white/5 last:border-0">
+                    <td class="py-3 px-3 text-gray-600 font-mono">{{ loop.index }}</td>
+                    <td class="py-3 px-3 font-mono text-cyan-300/80 whitespace-pre-wrap">{{ tc.input }}</td>
+                    <td class="py-3 px-3 font-mono text-emerald-300/80 whitespace-pre-wrap">{{ tc.expected_output }}</td>
+                    <td class="py-3 px-3 text-gray-500">{{ tc.get('description', '') if tc.get is defined else tc.description|default('', true) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Solve Form -->
+<div class="glass rounded-2xl p-8 mb-6 border-gradient">
+    <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-6">Solve</h2>
+    <form id="solve-form">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2">Model</label>
+                <input type="text" name="model"
+                       class="input-dark w-full rounded-lg px-3 py-2.5 text-sm font-mono"
+                       placeholder="default">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2">Max Attempts</label>
+                <input type="number" name="max_attempts" min="1" max="20" value="5"
+                       class="input-dark w-full rounded-lg px-3 py-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2">Backtracking</label>
+                <select name="backtracking" class="input-dark w-full rounded-lg px-3 py-2.5 text-sm">
+                    <option value="on">Enabled</option>
+                    <option value="off">Disabled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2">Candidates</label>
+                <input type="number" name="candidates" min="1" max="5" value="1"
+                       class="input-dark w-full rounded-lg px-3 py-2.5 text-sm">
+            </div>
+        </div>
+        <button type="submit" id="solve-btn" {% if not current_user or not has_llm_config %}disabled{% endif %}
+                class="btn-solve text-white px-8 py-3 rounded-xl font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+            Solve Problem
+        </button>
+    </form>
+</div>
+
+<!-- Results Container -->
+<div id="results-container"></div>
+
+<!-- Code Editor (shown after solve) -->
+<div id="editor-container" class="hidden glass rounded-2xl p-8 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Code Editor</h2>
+        <div class="flex items-center gap-2">
+            <button onclick="copyEditorCode()" class="glass-light text-gray-400 hover:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-white/10">
+                Copy
+            </button>
+            {% if current_user and has_llm_config %}
+            <button id="explain-btn" onclick="explainSolution()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20">
+                Explain Solution
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div id="code-editor" style="border:1px solid rgba(99,102,241,0.15);border-radius:12px;overflow:hidden"></div>
+</div>
+
+<!-- Explanation Container -->
+<div id="explanation-container" class="hidden glass rounded-2xl p-8 mb-6">
+    <h2 class="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-4">Solution Explanation</h2>
+    <div id="explanation-content" class="text-gray-300 text-sm leading-relaxed prose prose-invert max-w-none"></div>
+</div>
+
+<!-- CodeMirror CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+
+<!-- Progress Modal -->
+<div id="progress-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+    <div class="absolute inset-4 md:inset-x-auto md:inset-y-8 md:max-w-3xl md:mx-auto glass rounded-2xl shadow-2xl flex flex-col overflow-hidden glow-sm">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-5 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div id="modal-spinner" class="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                <h3 id="modal-title" class="text-cyan-400 font-semibold text-sm uppercase tracking-wider">Initializing...</h3>
+            </div>
+            <span id="modal-status" class="text-xs text-gray-600 font-mono"></span>
+        </div>
+        <!-- Log -->
+        <div id="modal-log" class="flex-1 overflow-y-auto px-6 py-4 space-y-0.5 text-sm"></div>
+        <!-- Footer -->
+        <div id="modal-footer" class="hidden px-6 py-5 border-t border-white/5 flex items-center justify-between">
+            <span id="modal-verdict" class="font-bold text-lg"></span>
+            <button onclick="closeModal()" class="glass-light text-gray-200 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition">
+                View Results
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const slug = {{ slug | tojson }};
+let solveResult = null;
+
+function esc(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function addLine(html, classes) {
+    const log = document.getElementById('modal-log');
+    const div = document.createElement('div');
+    div.className = classes || '';
+    div.innerHTML = html;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+const agentColors = {
+    config:    { bg: 'background:rgba(99,102,241,0.1)', text: 'color:#818cf8', label: 'CONFIG' },
+    generator: { bg: 'background:rgba(6,182,212,0.1)',  text: 'color:#22d3ee', label: 'GENERATOR' },
+    verifier:  { bg: 'background:rgba(245,158,11,0.1)', text: 'color:#fbbf24', label: 'VERIFIER' },
+    reviser:   { bg: 'background:rgba(168,85,247,0.1)', text: 'color:#c084fc', label: 'REVISER' },
+};
+
+function handleEvent(data) {
+    const statusEl = document.getElementById('modal-status');
+    const titleEl = document.getElementById('modal-title');
+
+    switch (data.type) {
+        case 'phase': {
+            const a = agentColors[data.agent] || agentColors.config;
+            addLine(
+                `<span style="${a.bg};${a.text};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.05em" class="mr-2">${a.label}</span>` +
+                `<span class="text-white font-medium">${esc(data.title)}</span>`,
+                'mt-4 mb-1'
+            );
+            titleEl.textContent = `${a.label}: ${data.title}`;
+            break;
+        }
+        case 'detail':
+            addLine(
+                `<span class="text-gray-600 ml-6">${esc(data.label)}:</span> <span class="text-gray-400">${esc(data.value)}</span>`,
+                'font-mono text-xs'
+            );
+            break;
+
+        case 'attempt':
+            addLine(
+                `<div class="border-t border-white/5 mt-4 pt-3 mb-2">` +
+                `<span class="text-gradient font-bold text-base">ATTEMPT ${data.number}/${data.total}</span>` +
+                `</div>`,
+                ''
+            );
+            statusEl.textContent = `Attempt ${data.number}/${data.total}`;
+            break;
+
+        case 'backtrack':
+            addLine(
+                `<span style="color:#c084fc" class="ml-4">` +
+                `Backtracking: revising from attempt ${data.from_attempt} ` +
+                `(score: ${Math.round(data.score * 100)}%) ` +
+                `[${data.total_history} attempt(s) in history]</span>`,
+                'text-xs'
+            );
+            break;
+
+        case 'log':
+            addLine(`<span class="text-gray-500">${esc(data.message)}</span>`, 'ml-6 font-mono text-xs');
+            break;
+
+        case 'code_preview': {
+            const preview = data.code.length > 200 ? data.code.substring(0, 200) + '...' : data.code;
+            addLine(
+                `<div class="ml-6 mt-1 mb-1">` +
+                `<span style="color:#22d3ee" class="text-xs font-mono">Generated ${data.total_chars} chars of code</span>` +
+                `<pre class="glass-light rounded-lg p-3 mt-1 text-xs overflow-x-auto max-h-32 overflow-y-auto" style="color:#22d3ee"><code>${esc(preview)}</code></pre>` +
+                `</div>`,
+                ''
+            );
+            break;
+        }
+
+        case 'test_result':
+            if (data.passed) {
+                addLine(
+                    `<span style="color:#34d399" class="font-mono text-xs ml-8">PASS</span> ` +
+                    `<span class="text-gray-400 text-xs">${esc(data.name)}</span>`,
+                    ''
+                );
+            } else {
+                addLine(
+                    `<span style="color:#f87171" class="font-mono text-xs ml-8">FAIL</span> ` +
+                    `<span class="text-gray-400 text-xs">${esc(data.name)}</span>` +
+                    `<div class="ml-16 text-xs text-gray-600">expected: <span class="text-gray-400 font-mono">${esc(data.expected)}</span> ` +
+                    `got: <span style="color:#f87171" class="font-mono">${esc(data.actual)}</span></div>` +
+                    (data.stderr ? `<div class="ml-16 text-xs font-mono" style="color:rgba(248,113,113,0.5)">${esc(data.stderr)}</div>` : ''),
+                    ''
+                );
+            }
+            break;
+
+        case 'verdict': {
+            const isAcc = data.value === 'ACCEPTED';
+            addLine(
+                `<div class="ml-6 mt-2 flex items-center gap-2">` +
+                `<span style="${isAcc ? 'background:rgba(52,211,153,0.15);color:#34d399' : 'background:rgba(248,113,113,0.15);color:#f87171'};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${data.value}</span>` +
+                `<span class="text-gray-500 text-xs">Score: ${Math.round(data.score * 100)}%</span>` +
+                `</div>`,
+                ''
+            );
+            break;
+        }
+
+        case 'feedback':
+            addLine(
+                `<div class="ml-6 mt-1 space-y-1 border-l-2 pl-3" style="border-color:rgba(251,191,36,0.4)">` +
+                `<div class="text-xs"><span style="color:#fbbf24" class="font-semibold">Root cause:</span> <span class="text-gray-400">${esc(data.root_cause)}</span></div>` +
+                `<div class="text-xs"><span style="color:#fbbf24" class="font-semibold">Suggested fix:</span> <span class="text-gray-400">${esc(data.suggested_fix)}</span></div>` +
+                (data.focus_areas && data.focus_areas.length
+                    ? `<div class="text-xs"><span style="color:#fbbf24" class="font-semibold">Focus areas:</span> <span class="text-gray-400">${esc(data.focus_areas.join(', '))}</span></div>`
+                    : '') +
+                `</div>`,
+                'mb-2'
+            );
+            break;
+
+        case 'accepted':
+            addLine(
+                `<div class="mt-3 p-4 rounded-xl text-center" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2)">` +
+                `<span style="color:#34d399" class="font-bold text-lg">Solution ACCEPTED on attempt ${data.attempt}!</span>` +
+                `</div>`,
+                ''
+            );
+            break;
+
+        case 'failed':
+            addLine(
+                `<div class="mt-3 p-4 rounded-xl text-center" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2)">` +
+                `<span style="color:#f87171" class="font-bold">Failed after ${data.total_attempts} attempts. Best score: ${Math.round(data.best_score * 100)}%</span>` +
+                `</div>`,
+                ''
+            );
+            break;
+
+        case 'done': {
+            solveResult = data.result;
+            const spinner = document.getElementById('modal-spinner');
+            const footer = document.getElementById('modal-footer');
+            const verdictEl = document.getElementById('modal-verdict');
+            spinner.classList.add('hidden');
+            titleEl.textContent = solveResult.solved ? 'Solution Found!' : 'Solve Complete';
+            titleEl.style.color = solveResult.solved ? '#34d399' : '#fbbf24';
+            verdictEl.textContent = solveResult.solved ? 'ACCEPTED' : 'REJECTED';
+            verdictEl.style.color = solveResult.solved ? '#34d399' : '#f87171';
+            footer.classList.remove('hidden');
+            break;
+        }
+
+        case 'error': {
+            addLine(`<div style="color:#f87171" class="font-bold mt-2">ERROR: ${esc(data.message)}</div>`, '');
+            const spinner = document.getElementById('modal-spinner');
+            const footer = document.getElementById('modal-footer');
+            const verdictEl = document.getElementById('modal-verdict');
+            spinner.classList.add('hidden');
+            titleEl.textContent = 'Error';
+            titleEl.style.color = '#f87171';
+            verdictEl.textContent = 'ERROR';
+            verdictEl.style.color = '#f87171';
+            footer.classList.remove('hidden');
+            break;
+        }
+    }
+}
+
+document.getElementById('solve-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const btn = document.getElementById('solve-btn');
+    const modal = document.getElementById('progress-modal');
+    const log = document.getElementById('modal-log');
+    const footer = document.getElementById('modal-footer');
+    const spinner = document.getElementById('modal-spinner');
+    const titleEl = document.getElementById('modal-title');
+
+    log.innerHTML = '';
+    footer.classList.add('hidden');
+    spinner.classList.remove('hidden');
+    titleEl.textContent = 'Initializing...';
+    titleEl.style.color = '#22d3ee';
+    btn.disabled = true;
+    btn.textContent = 'Solving...';
+    modal.classList.remove('hidden');
+    solveResult = null;
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(`/problem/${slug}/solve`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const data = JSON.parse(line.slice(6));
+                    handleEvent(data);
+                } catch (e) { /* skip malformed */ }
+            }
+        }
+    } catch (err) {
+        handleEvent({ type: 'error', message: 'Connection error: ' + err.message });
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Solve Problem';
+});
+
+function closeModal() {
+    document.getElementById('progress-modal').classList.add('hidden');
+    if (solveResult) renderResults(solveResult);
+}
+
+let cmEditor = null;
+
+function renderResults(result) {
+    const container = document.getElementById('results-container');
+    const isSolved = result.solved;
+    let html = '';
+
+    // Verdict banner
+    html += `
+    <div class="glass rounded-2xl p-8 mb-6 border-gradient animate-slide-up" style="animation-delay:0.1s">
+        <div class="flex items-center justify-between">
+            <span class="text-3xl font-bold" style="color:${isSolved ? '#34d399' : '#f87171'}">${isSolved ? 'ACCEPTED' : 'REJECTED'}</span>
+            <div class="text-right text-sm" style="color:${isSolved ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)'}">
+                <div>Score: ${Math.round(result.score * 100)}%</div>
+                <div>Attempts: ${result.attempts}</div>
+            </div>
+        </div>
+    </div>`;
+
+    // Solution
+    html += `
+    <div class="glass rounded-2xl p-8 mb-6 animate-slide-up" style="animation-delay:0.2s">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-semibold uppercase tracking-wider" style="color:#818cf8">${isSolved ? 'Accepted Solution' : 'Best Solution'}</h2>
+            <button onclick="navigator.clipboard.writeText(solveResult.code)" class="glass-light text-gray-400 hover:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-white/10">Copy</button>
+        </div>
+        <pre class="glass-light rounded-xl p-5 overflow-x-auto"><code style="color:#22d3ee" class="font-mono text-sm">${esc(result.code)}</code></pre>
+    </div>`;
+
+    // Show code editor
+    if (result.code) {
+        const editorContainer = document.getElementById('editor-container');
+        editorContainer.classList.remove('hidden');
+        const editorEl = document.getElementById('code-editor');
+        editorEl.innerHTML = '';
+        cmEditor = CodeMirror(editorEl, {
+            value: result.code,
+            mode: 'python',
+            theme: 'material-darker',
+            lineNumbers: true,
+            readOnly: false,
+            viewportMargin: Infinity,
+        });
+        setTimeout(() => cmEditor.refresh(), 100);
+    }
+
+    // Attempt history
+    html += `<div class="glass rounded-2xl p-8 mb-6 animate-slide-up" style="animation-delay:0.3s">
+        <h2 class="text-xs font-semibold uppercase tracking-wider mb-6" style="color:#818cf8">Attempt History</h2>
+        <div class="space-y-4">`;
+
+    for (const attempt of result.history) {
+        const isAcc = attempt.verdict === 'ACCEPTED';
+        const isLast = attempt === result.history[result.history.length - 1];
+        html += `
+        <details class="glass-light rounded-xl overflow-hidden" ${isLast ? 'open' : ''}>
+            <summary class="px-5 py-4 cursor-pointer hover:bg-white/5 transition flex items-center justify-between">
+                <span class="font-medium text-gray-300">Attempt ${attempt.attempt}
+                    <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="${isAcc ? 'background:rgba(52,211,153,0.15);color:#34d399' : 'background:rgba(248,113,113,0.15);color:#f87171'}">${attempt.verdict}</span>
+                </span>
+                <span class="text-sm text-gray-500">Score: ${Math.round(attempt.score * 100)}%</span>
+            </summary>
+            <div class="px-5 pb-5 space-y-4 border-t border-white/5 pt-4">`;
+
+        if (attempt.test_results && attempt.test_results.length) {
+            html += `<div><h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Test Results</h4><div class="space-y-1">`;
+            attempt.test_results.forEach((tr, i) => {
+                html += `<div class="flex items-start gap-2 text-sm">
+                    <span class="font-mono text-xs mt-0.5" style="color:${tr.passed ? '#34d399' : '#f87171'}">${tr.passed ? 'PASS' : 'FAIL'}</span>
+                    <div><span class="text-gray-400">${esc(tr.description || 'Test ' + (i+1))}</span>
+                    ${!tr.passed ? `<div class="text-xs text-gray-600 mt-0.5">Expected: <span class="font-mono text-gray-400">${esc(tr.expected)}</span> | Got: <span class="font-mono" style="color:#f87171">${esc(tr.actual)}</span></div>` : ''}
+                    </div></div>`;
+            });
+            html += `</div></div>`;
+        }
+
+        html += `<div><h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Code</h4>
+            <pre class="glass rounded-lg p-4 overflow-x-auto text-xs"><code style="color:#22d3ee" class="font-mono">${esc(attempt.code)}</code></pre></div>`;
+
+        if (attempt.feedback) {
+            html += `<div><h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Revision Feedback</h4>
+                <div class="glass rounded-lg p-4 text-sm space-y-2 border-l-2" style="border-color:rgba(251,191,36,0.3)">
+                <div><span style="color:#fbbf24" class="font-medium">Root Cause:</span> <span class="text-gray-400">${esc(attempt.feedback.root_cause)}</span></div>
+                <div><span style="color:#fbbf24" class="font-medium">Suggested Fix:</span> <span class="text-gray-400">${esc(attempt.feedback.suggested_fix)}</span></div>
+                ${attempt.feedback.focus_areas?.length ? `<div><span style="color:#fbbf24" class="font-medium">Focus Areas:</span> <span class="text-gray-400">${esc(attempt.feedback.focus_areas.join(', '))}</span></div>` : ''}
+                </div></div>`;
+        }
+        html += `</div></details>`;
+    }
+    html += `</div></div>`;
+    container.innerHTML = html;
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyEditorCode() {
+    if (cmEditor) {
+        navigator.clipboard.writeText(cmEditor.getValue());
+    }
+}
+
+async function explainSolution() {
+    const code = cmEditor ? cmEditor.getValue() : (solveResult ? solveResult.code : '');
+    if (!code) return;
+
+    const btn = document.getElementById('explain-btn');
+    const container = document.getElementById('explanation-container');
+    const content = document.getElementById('explanation-content');
+
+    btn.disabled = true;
+    btn.textContent = 'Explaining...';
+    container.classList.remove('hidden');
+    content.innerHTML = '<div class="text-gray-500 text-sm">Generating explanation...</div>';
+
+    try {
+        const resp = await fetch(`/problem/${slug}/explain`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        // Simple markdown-to-HTML (basic)
+        let md = data.explanation || '';
+        md = md.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="glass-light rounded-lg p-4 overflow-x-auto my-2"><code class="font-mono text-xs" style="color:#22d3ee">$2</code></pre>');
+        md = md.replace(/`([^`]+)`/g, '<code class="text-cyan-400 text-xs font-mono px-1 py-0.5 rounded" style="background:rgba(6,182,212,0.1)">$1</code>');
+        md = md.replace(/\*\*(.+?)\*\*/g, '<strong class="text-gray-200">$1</strong>');
+        md = md.replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-purple-300 mt-4 mb-1">$1</h3>');
+        md = md.replace(/^## (.+)$/gm, '<h2 class="text-base font-semibold text-purple-300 mt-4 mb-2">$1</h2>');
+        md = md.replace(/^# (.+)$/gm, '<h1 class="text-lg font-bold text-purple-300 mt-4 mb-2">$1</h1>');
+        md = md.replace(/^- (.+)$/gm, '<li class="ml-4 text-gray-400">$1</li>');
+        md = md.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 text-gray-400">$1</li>');
+        md = md.replace(/\n\n/g, '<br><br>');
+        content.innerHTML = md;
+    } catch (err) {
+        content.innerHTML = `<div style="color:#f87171">Error: ${esc(err.message)}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Explain Solution';
+    }
+}
+</script>
+</div>
+{% endblock %}

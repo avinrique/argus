@@ -1,0 +1,13 @@
+{
+    "title": "Implement Trie (Prefix Tree)",
+    "description": "A trie (pronounced as \"try\") or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings. There are various applications of this data structure, such as autocomplete and spellchecker.\r\n\r\nImplement the Trie class:\r\n\r\nTrie() Initializes the trie object.\r\nvoid insert(String word) Inserts the string word into the trie.\r\nboolean search(String word) Returns true if the string word is in the trie (i.e., was inserted before), and false otherwise.\r\nboolean startsWith(String prefix) Returns true if there is a previously inserted string word that has the prefix prefix, and false otherwise.",
+    "test_cases": [
+        {
+            "input": "obj = Trie()\r\nobj.insert('apple')\r\nobj.search('apple')\r\nobj.search('app')\r\nobj.startsWith('app')\r\nobj.insert('app')\r\nobj.search('app')",
+            "expected_output": "[null, null, True, False, True, null, True]",
+            "description": "Example 1"
+        }
+    ],
+    "function_signature": "class Trie:    def __init__(self):            def insert(self, word: str) -> None:            def search(self, word: str) -> bool:            def startsWith(self, prefix: str) -> bool:",
+    "constraints": "1 <= word.length, prefix.length <= 2000\r\nword and prefix consist only of lowercase English letters.\r\nAt most 3 * 10^4 calls in total will be made to insert, search, and startsWith."
+}

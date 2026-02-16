@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Settings - Argus{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto animate-slide-up">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient mb-1">Settings</h1>
+        <p class="text-sm text-gray-500">Configure your LLM provider to power the solver</p>
+    </div>
+
+    {% if success %}
+    <div class="glass rounded-xl px-4 py-3 mb-6 border-l-4 border-emerald-500">
+        <p class="text-emerald-400 text-sm">Settings saved successfully.</p>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="glass rounded-xl px-4 py-3 mb-6 border-l-4 border-red-500">
+        <p class="text-red-400 text-sm">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form method="POST" class="glass rounded-2xl p-8 space-y-6 glow-sm">
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="llm_provider">LLM Provider</label>
+            <select name="llm_provider" id="llm_provider" onchange="toggleProviderFields()"
+                    class="input-dark w-full rounded-xl px-4 py-3 text-sm">
+                <option value="openai" {{ 'selected' if user.llm_provider == 'openai' }}>OpenAI</option>
+                <option value="ollama" {{ 'selected' if user.llm_provider == 'ollama' }}>Ollama (Local)</option>
+            </select>
+        </div>
+
+        <div id="openai-fields" class="{{ 'hidden' if user.llm_provider != 'openai' }}">
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="openai_api_key">OpenAI API Key</label>
+            <input type="password" name="openai_api_key" id="openai_api_key"
+                   value="{{ user.openai_api_key or '' }}"
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm font-mono"
+                   placeholder="sk-...">
+        </div>
+
+        <div id="ollama-fields" class="{{ 'hidden' if user.llm_provider != 'ollama' }}">
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="ollama_base_url">Ollama Base URL</label>
+            <input type="url" name="ollama_base_url" id="ollama_base_url"
+                   value="{{ user.ollama_base_url or 'http://localhost:11434/v1' }}"
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm font-mono"
+                   placeholder="http://localhost:11434/v1">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2" for="preferred_model">Preferred Model <span class="text-gray-600 font-normal">(optional)</span></label>
+            <input type="text" name="preferred_model" id="preferred_model"
+                   value="{{ user.preferred_model or '' }}"
+                   class="input-dark w-full rounded-xl px-4 py-3 text-sm font-mono"
+                   placeholder="e.g. gpt-4o, llama3, etc.">
+            <p class="mt-2 text-xs text-gray-600">Leave blank to use the default model.</p>
+        </div>
+
+        <button type="submit" class="btn-primary w-full text-white px-4 py-3 rounded-xl font-semibold text-sm">
+            Save Settings
+        </button>
+    </form>
+</div>
+
+<script>
+function toggleProviderFields() {
+    const provider = document.getElementById('llm_provider').value;
+    document.getElementById('openai-fields').classList.toggle('hidden', provider !== 'openai');
+    document.getElementById('ollama-fields').classList.toggle('hidden', provider !== 'ollama');
+}
+</script>
+{% endblock %}

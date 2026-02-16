@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit Problem" if edit_mode else "Create Problem" }} - Argus{% endblock %}
+{% block content %}
+<div class="animate-slide-up">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gradient mb-1">{{ "Edit Problem" if edit_mode else "Create Problem" }}</h1>
+        <p class="text-sm text-gray-500">{{ "Update your problem details" if edit_mode else "Define a coding challenge for Argus to solve" }}</p>
+    </div>
+
+    {% if error %}
+    <div class="glass rounded-xl px-4 py-3 mb-6 border-l-4 border-red-500">
+        <p class="text-red-400 text-sm">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    {% if not edit_mode %}
+    <!-- Paste & Auto-fill Section -->
+    <div class="glass rounded-2xl mb-6 overflow-hidden">
+        <button type="button" onclick="togglePasteSection()"
+                class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-white/5 transition">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                    </svg>
+                </div>
+                <span class="text-sm font-semibold text-gray-300">Paste & Auto-fill with AI</span>
+            </div>
+            <svg id="paste-chevron" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div id="paste-section" class="hidden px-6 pb-6">
+            <p class="text-xs text-gray-500 mb-3">Paste a raw coding problem (from LeetCode, etc.) and click Parse to auto-fill the form below.</p>
+            <div id="parse-error" class="hidden glass rounded-xl px-4 py-3 mb-3 border-l-4 border-red-500 text-red-400 text-sm"></div>
+            <textarea id="raw-problem-text" rows="8"
+                      class="input-dark w-full rounded-xl px-4 py-3 font-mono text-sm"
+                      placeholder="Paste the full problem text here..."></textarea>
+            <div class="mt-3 flex items-center gap-3">
+                <button type="button" onclick="parseProblem()"
+                        id="parse-btn"
+                        class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20 inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                    </svg>
+                    Parse
+                </button>
+                <div id="parse-spinner" class="hidden">
+                    <svg class="animate-spin h-5 w-5 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ '/problem/' + slug + '/edit' if edit_mode else '/create' }}" enctype="multipart/form-data" class="space-y-6">
+        <div class="glass rounded-2xl p-8 space-y-6 glow-sm">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2" for="title">Title</label>
+                <input type="text" name="title" id="title" required
+                       value="{{ form.title if form else (problem.title if edit_mode and problem else '') }}"
+                       class="input-dark w-full rounded-xl px-4 py-3 text-sm"
+                       placeholder="e.g. Two Sum">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2" for="description">Description</label>
+                <textarea name="description" id="description" rows="6" required
+                          class="input-dark w-full rounded-xl px-4 py-3 font-mono text-sm"
+                          placeholder="Problem statement...">{{ form.description if form else (problem.description if edit_mode and problem else '') }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2" for="code_template">Code Template <span class="text-gray-600 font-normal">(paste from LeetCode / HackerEarth / etc.)</span></label>
+                <textarea name="code_template" id="code_template" rows="4"
+                          class="input-dark w-full rounded-xl px-4 py-3 font-mono text-sm"
+                          placeholder="class Solution:&#10;    def shortestPalindrome(self, s: str) -> str:">{{ form.code_template if form else (problem.code_template if edit_mode and problem else '') }}</textarea>
+                <p class="mt-2 text-xs text-gray-600">Paste the exact code template from the platform. The solver will output code matching this format.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2" for="function_signature">Function Signature <span class="text-gray-600 font-normal">(auto-filled if template provided)</span></label>
+                <input type="text" name="function_signature" id="function_signature"
+                       value="{{ form.function_signature if form else (problem.function_signature if edit_mode and problem else '') }}"
+                       class="input-dark w-full rounded-xl px-4 py-3 font-mono text-sm"
+                       placeholder="def combinationSum(arr, target)">
+                <p class="mt-2 text-xs text-gray-600">Plain function name + params (used for test harness). Leave blank if template above is set.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2" for="constraints">Constraints <span class="text-gray-600 font-normal">(optional)</span></label>
+                <textarea name="constraints" id="constraints" rows="3"
+                          class="input-dark w-full rounded-xl px-4 py-3 font-mono text-sm"
+                          placeholder="e.g. 2 <= nums.length <= 10^4">{{ form.constraints if form else (problem.constraints if edit_mode and problem else '') }}</textarea>
+            </div>
+
+            <!-- Problem Images -->
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Problem Images <span class="text-gray-600 font-normal">(diagrams, examples — sent to AI agents)</span></label>
+                {% if edit_mode and problem and problem.images %}
+                <div class="flex flex-wrap gap-3 mb-3">
+                    {% for img_url in problem.images %}
+                    <div class="relative group">
+                        <img src="{{ img_url }}" alt="Problem image" class="h-24 rounded-lg border border-white/10 object-cover">
+                        <span class="absolute bottom-1 left-1 text-xs text-gray-400 bg-black/70 px-1.5 py-0.5 rounded">Existing</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-gray-600 mb-2">Upload more images to add to existing ones.</p>
+                {% endif %}
+                <input type="file" name="images" multiple accept="image/*"
+                       class="input-dark w-full rounded-xl px-4 py-3 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-500/20 file:text-indigo-300 hover:file:bg-indigo-500/30 file:cursor-pointer">
+                <p class="mt-2 text-xs text-gray-600">PNG, JPG, GIF, WebP. These images will be sent alongside the problem description to all AI agents.</p>
+            </div>
+
+            <!-- Tags, Difficulty, Visibility -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2" for="tags">Tags <span class="text-gray-600 font-normal">(comma-separated)</span></label>
+                    <input type="text" name="tags" id="tags"
+                           value="{{ form.tags if form else (problem.tags if edit_mode and problem else '') }}"
+                           class="input-dark w-full rounded-xl px-4 py-3 text-sm"
+                           placeholder="e.g. dp, array, two-pointers">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2" for="difficulty">Difficulty</label>
+                    <select name="difficulty" id="difficulty" class="input-dark w-full rounded-xl px-4 py-3 text-sm">
+                        {% set current_diff = form.difficulty if form else (problem.difficulty if edit_mode and problem else 'medium') %}
+                        <option value="easy" {% if current_diff == 'easy' %}selected{% endif %}>Easy</option>
+                        <option value="medium" {% if current_diff == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="hard" {% if current_diff == 'hard' %}selected{% endif %}>Hard</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Visibility</label>
+                    <div class="flex items-center gap-3 mt-1">
+                        {% set is_pub = form.is_public if form else (problem.is_public if edit_mode and problem else 1) %}
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="is_public" value="1" {% if is_pub != 0 and is_pub != '0' %}checked{% endif %}
+                                   class="text-indigo-500 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-400">Public</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="is_public" value="0" {% if is_pub == 0 or is_pub == '0' %}checked{% endif %}
+                                   class="text-indigo-500 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-400">Private</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Cases -->
+        <div class="glass rounded-2xl p-8 glow-sm">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-200">Test Cases</h2>
+                <button type="button" onclick="addTestCase()"
+                        class="glass-light text-gray-300 px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition">
+                    + Add Test Case
+                </button>
+            </div>
+            <div id="test-cases" class="space-y-4"></div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="btn-primary text-white px-8 py-3 rounded-xl font-semibold text-sm">
+                {{ "Save Changes" if edit_mode else "Create Problem" }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+let testCaseCount = 0;
+
+function makeTestCaseHTML(idx, input, output, desc) {
+    return `
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-indigo-400">Test Case ${idx + 1}</span>
+            <button type="button" onclick="removeTestCase(this)" class="text-red-400/60 hover:text-red-400 text-sm transition-colors">Remove</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Input</label>
+                <textarea name="tc_input_${idx}" rows="2"
+                          class="input-dark w-full rounded-lg px-3 py-2 font-mono text-sm"
+                          placeholder="[2, 7, 11, 15]&#10;9">${input}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Expected Output</label>
+                <textarea name="tc_output_${idx}" rows="2"
+                          class="input-dark w-full rounded-lg px-3 py-2 font-mono text-sm"
+                          placeholder="[0, 1]">${output}</textarea>
+            </div>
+        </div>
+        <div class="mt-2">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Description <span class="text-gray-600">(optional)</span></label>
+            <input type="text" name="tc_desc_${idx}" value="${desc}"
+                   class="input-dark w-full rounded-lg px-3 py-2 text-sm"
+                   placeholder="e.g. Basic case">
+        </div>
+    `;
+}
+
+function addTestCase(input, output, desc) {
+    input = input || '';
+    output = output || '';
+    desc = desc || '';
+    const idx = testCaseCount++;
+    const container = document.getElementById('test-cases');
+    const div = document.createElement('div');
+    div.className = 'test-case glass-light rounded-xl p-5';
+    div.dataset.index = idx;
+    div.innerHTML = makeTestCaseHTML(idx, input, output, desc);
+    container.appendChild(div);
+}
+
+function removeTestCase(btn) {
+    const testCases = document.querySelectorAll('.test-case');
+    if (testCases.length <= 1) return;
+    btn.closest('.test-case').remove();
+}
+
+// Initialise test cases
+(function() {
+    {% if edit_mode and problem and problem.test_cases %}
+    const existing = {{ problem.test_cases | tojson }};
+    existing.forEach(tc => {
+        addTestCase(tc.input || '', tc.expected_output || '', tc.description || '');
+    });
+    {% else %}
+    addTestCase();
+    {% endif %}
+})();
+
+{% if not edit_mode %}
+function togglePasteSection() {
+    const section = document.getElementById('paste-section');
+    const chevron = document.getElementById('paste-chevron');
+    section.classList.toggle('hidden');
+    chevron.classList.toggle('rotate-180');
+}
+
+async function parseProblem() {
+    const rawText = document.getElementById('raw-problem-text').value.trim();
+    const errorDiv = document.getElementById('parse-error');
+    const spinner = document.getElementById('parse-spinner');
+    const btn = document.getElementById('parse-btn');
+
+    errorDiv.classList.add('hidden');
+    if (!rawText) {
+        errorDiv.textContent = 'Please paste some problem text first.';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+    spinner.classList.remove('hidden');
+
+    try {
+        const resp = await fetch('/create/parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ raw_text: rawText }),
+        });
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            throw new Error(data.error || 'Parse request failed');
+        }
+
+        if (data.title) document.getElementById('title').value = data.title;
+        if (data.description) document.getElementById('description').value = data.description;
+        if (data.code_template) document.getElementById('code_template').value = data.code_template;
+        if (data.function_signature) document.getElementById('function_signature').value = data.function_signature;
+        if (data.constraints) document.getElementById('constraints').value = data.constraints;
+
+        if (data.test_cases && data.test_cases.length > 0) {
+            const container = document.getElementById('test-cases');
+            container.innerHTML = '';
+            testCaseCount = 0;
+            data.test_cases.forEach(tc => {
+                addTestCase(tc.input || '', tc.expected_output || '', tc.description || '');
+            });
+        }
+    } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        spinner.classList.add('hidden');
+    }
+}
+{% endif %}
+</script>
+{% endblock %}
