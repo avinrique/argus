@@ -55,6 +55,9 @@ def main(argv: list[str] | None = None) -> None:
     solve_parser.add_argument(
         "--candidates", type=int, default=None, help="Candidates per attempt"
     )
+    solve_parser.add_argument(
+        "--no-diverse", action="store_true", default=False, help="Disable diverse generation on first attempt"
+    )
 
     args = parser.parse_args(argv)
 
@@ -78,6 +81,8 @@ def main(argv: list[str] | None = None) -> None:
         overrides["enable_backtracking"] = False
     if args.candidates is not None:
         overrides["candidates_per_attempt"] = args.candidates
+    if args.no_diverse:
+        overrides["diverse_generation"] = False
 
     try:
         config = Config.from_env(**overrides)

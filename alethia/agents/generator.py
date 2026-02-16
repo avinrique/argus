@@ -18,17 +18,21 @@ class GeneratorAgent(BaseAgent):
         previous_code: str | None = None,
         previous_plan: str | None = None,
         fresh_start_hint: bool = False,
+        strategy_hint: str | None = None,
+        temperature_override: float | None = None,
     ) -> Solution:
         user_prompt = generator_user_prompt(
             problem, attempt, feedback, previous_code,
             previous_plan=previous_plan,
             fresh_start_hint=fresh_start_hint,
+            strategy_hint=strategy_hint,
         )
+        temperature = temperature_override if temperature_override is not None else self.config.generator_temperature
         raw = self._call_llm(
             system=GENERATOR_SYSTEM,
             user=user_prompt,
             model=self.config.generator_model,
-            temperature=self.config.generator_temperature,
+            temperature=temperature,
             images=problem.images or None,
         )
         code = extract_code_block(raw)

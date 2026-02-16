@@ -22,6 +22,7 @@ The loop continues until a solution is accepted or the retry limit is reached. K
 - **Stuck loop detection** — If the reviser keeps giving the same feedback, triggers a fresh start
 - **Edge case generation** — Verifier auto-generates additional test cases beyond the provided ones
 - **Multi-candidate** — Can generate multiple candidates per attempt and pick the best
+- **Diverse generation** — AlphaCode-style first attempt: generates solutions using 4 different strategies (optimal, brute-force, creative, DP/greedy) with tuned temperatures, then picks the best
 
 ## Features
 
@@ -67,6 +68,9 @@ Open http://localhost:5001, sign up, configure your LLM provider in Settings, an
 ```bash
 export OPENAI_API_KEY=sk-...
 alethia solve problems/two_sum.json
+
+# Disable diverse generation (use uniform candidates instead)
+alethia solve problems/two_sum.json --no-diverse
 ```
 
 ### Use with Ollama (free, local)
@@ -93,6 +97,7 @@ alethia solve problems/two_sum.json
 | `ALETHIA_MAX_MEMORY_MB` | `256` | Memory limit for code execution |
 | `ALETHIA_ENABLE_BACKTRACKING` | `true` | Enable backtracking to best historical attempt |
 | `ALETHIA_CANDIDATES_PER_ATTEMPT` | `1` | Number of candidate solutions per attempt |
+| `ALETHIA_DIVERSE_GENERATION` | `true` | Use diverse strategies on first attempt |
 | `ALETHIA_EXECUTOR` | `local` | `local` or `judge0` |
 | `FLASK_SECRET_KEY` | `dev-secret-key...` | Flask session secret (change in production) |
 

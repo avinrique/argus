@@ -18,6 +18,7 @@ from alethia.models import (
     Verdict,
     VerificationResult,
 )
+from alethia.prompts import DEFAULT_STRATEGIES
 
 
 @dataclass
@@ -53,6 +54,7 @@ class Orchestrator:
         self._log(f"Model: {self.config.generator_model}")
         self._log(f"Backtracking: {'enabled' if self.config.enable_backtracking else 'disabled'}")
         self._log(f"Candidates per attempt: {self.config.candidates_per_attempt}")
+        self._log(f"Diverse generation: {'enabled' if self.config.diverse_generation else 'disabled'}")
         self._log(f"{'='*60}\n")
 
         history: list[AttemptRecord] = []
@@ -87,12 +89,15 @@ class Orchestrator:
                 fresh_start_hint = False
 
             # Generate candidate(s)
-            candidates = self._generate_candidates(
-                problem, attempt, feedback, previous_code,
-                self.config.candidates_per_attempt,
-                previous_plan=previous_plan,
-                fresh_start_hint=fresh_start_hint,
-            )
+            if self.config.diverse_generation and not history and not feedback:
+                candidates = self._generate_diverse_candidates(problem, attempt)
+            else:
+                candidates = self._generate_candidates(
+                    problem, attempt, feedback, previous_code,
+                    self.config.candidates_per_attempt,
+                    previous_plan=previous_plan,
+                    fresh_start_hint=fresh_start_hint,
+                )
 
             # Verify each candidate and keep the best
             best_solution: Solution | None = None
@@ -200,6 +205,27 @@ class Orchestrator:
                 previous_plan=previous_plan,
                 fresh_start_hint=fresh_start_hint,
             )
+            self._log(f"Generated {len(solution.code)} chars of code.")
+            if solution.plan:
+                self._log(f"Plan: {solution.plan[:200]}")
+            candidates.append(solution)
+        return candidates
+
+    def _generate_diverse_candidates(
+        self,
+        problem: Problem,
+        attempt: int,
+    ) -> list[Solution]:
+        """Generate candidates using different strategies (AlphaCode-style)."""
+        candidates = []
+        for strategy in DEFAULT_STRATEGIES:
+            self._log(f"Generating candidate with strategy '{strategy.name}' (temp={strategy.temperature})...")
+            solution = self.generator.generate(
+                problem, attempt,
+                strategy_hint=strategy.hint,
+                temperature_override=strategy.temperature,
+            )
+            solution.strategy = strategy.name
             self._log(f"Generated {len(solution.code)} chars of code.")
             if solution.plan:
                 self._log(f"Plan: {solution.plan[:200]}")

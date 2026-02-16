@@ -36,6 +36,7 @@ class Solution:
     attempt: int
     raw_response: str = ""
     plan: str = ""
+    strategy: str = ""  # name of generation strategy used
 
 
 @dataclass

@@ -2,7 +2,40 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from alethia.models import Problem, RevisionFeedback, Solution, VerificationResult
+
+
+@dataclass(frozen=True)
+class GenerationStrategy:
+    name: str
+    temperature: float
+    hint: str
+
+
+DEFAULT_STRATEGIES: list[GenerationStrategy] = [
+    GenerationStrategy(
+        name="optimal",
+        temperature=0.3,
+        hint="Find the most efficient algorithm. Think carefully about time and space complexity.",
+    ),
+    GenerationStrategy(
+        name="brute_force_first",
+        temperature=0.4,
+        hint="Start with a simple brute-force that is definitely correct, then optimize.",
+    ),
+    GenerationStrategy(
+        name="creative",
+        temperature=0.9,
+        hint="Think of an unconventional approach. Consider less obvious data structures.",
+    ),
+    GenerationStrategy(
+        name="dp_or_greedy",
+        temperature=0.5,
+        hint="Consider whether this can be solved with dynamic programming or a greedy approach.",
+    ),
+]
 
 # ---------------------------------------------------------------------------
 # Generator
@@ -43,6 +76,7 @@ def generator_user_prompt(
     previous_code: str | None = None,
     previous_plan: str | None = None,
     fresh_start_hint: bool = False,
+    strategy_hint: str | None = None,
 ) -> str:
     parts = [
         f"# {problem.title}\n",
@@ -88,6 +122,9 @@ def generator_user_prompt(
             "\n---\nPrevious approaches have repeatedly failed with similar issues. "
             "Try a fundamentally different algorithm."
         )
+
+    if strategy_hint:
+        parts.append(f"\n## Strategy Hint\n{strategy_hint}")
 
     return "\n".join(parts)
 

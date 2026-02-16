@@ -146,6 +146,15 @@
                        class="input-dark w-full rounded-lg px-3 py-2.5 text-sm">
             </div>
         </div>
+        <div class="flex items-center gap-3 mb-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="diverse-checkbox" checked
+                       class="w-4 h-4 rounded border-gray-600 text-cyan-500 focus:ring-cyan-500 bg-gray-800">
+                <span class="text-sm text-gray-400">Diverse strategies</span>
+                <span class="text-xs text-gray-600">(generate with 4 different strategies on first attempt)</span>
+            </label>
+            <input type="hidden" name="diverse_generation" id="diverse-hidden" value="on">
+        </div>
         <button type="submit" id="solve-btn" {% if not current_user or not has_llm_config %}disabled{% endif %}
                 class="btn-solve text-white px-8 py-3 rounded-xl font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
             Solve Problem
@@ -213,6 +222,11 @@
 <script>
 const slug = {{ slug | tojson }};
 let solveResult = null;
+
+// Sync diverse checkbox with hidden input
+document.getElementById('diverse-checkbox').addEventListener('change', function() {
+    document.getElementById('diverse-hidden').value = this.checked ? 'on' : 'off';
+});
 
 function esc(text) {
     const d = document.createElement('div');
@@ -284,9 +298,12 @@ function handleEvent(data) {
 
         case 'code_preview': {
             const preview = data.code.length > 200 ? data.code.substring(0, 200) + '...' : data.code;
+            const strategyLabel = data.strategy
+                ? `<span style="background:rgba(6,182,212,0.15);color:#22d3ee;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin-right:6px">${esc(data.strategy)}</span>`
+                : '';
             addLine(
                 `<div class="ml-6 mt-1 mb-1">` +
-                `<span style="color:#22d3ee" class="text-xs font-mono">Generated ${data.total_chars} chars of code</span>` +
+                `${strategyLabel}<span style="color:#22d3ee" class="text-xs font-mono">Generated ${data.total_chars} chars of code</span>` +
                 `<pre class="glass-light rounded-lg p-3 mt-1 text-xs overflow-x-auto max-h-32 overflow-y-auto" style="color:#22d3ee"><code>${esc(preview)}</code></pre>` +
                 `</div>`,
                 ''
@@ -507,6 +524,7 @@ function renderResults(result) {
             <summary class="px-5 py-4 cursor-pointer hover:bg-white/5 transition flex items-center justify-between">
                 <span class="font-medium text-gray-300">Attempt ${attempt.attempt}
                     <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="${isAcc ? 'background:rgba(52,211,153,0.15);color:#34d399' : 'background:rgba(248,113,113,0.15);color:#f87171'}">${attempt.verdict}</span>
+                    ${attempt.strategy ? `<span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="background:rgba(6,182,212,0.15);color:#22d3ee">${esc(attempt.strategy)}</span>` : ''}
                 </span>
                 <span class="text-sm text-gray-500">Score: ${Math.round(attempt.score * 100)}%</span>
             </summary>

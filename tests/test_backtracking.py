@@ -22,6 +22,7 @@ def _make_config(**overrides) -> Config:
         "max_attempts": 3,
         "enable_backtracking": True,
         "candidates_per_attempt": 1,
+        "diverse_generation": False,
     }
     defaults.update(overrides)
     return Config(**defaults)

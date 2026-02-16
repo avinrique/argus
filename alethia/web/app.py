@@ -16,7 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from alethia.config import Config
 from alethia.models import Problem, RevisionFeedback, Solution, TestCase, Verdict, VerificationResult
 from alethia.orchestrator import AttemptRecord, Orchestrator, SolveResult
-from alethia.prompts import PARSER_SYSTEM
+from alethia.prompts import DEFAULT_STRATEGIES, PARSER_SYSTEM
 from alethia.web.auth import get_current_user_id, login_required
 from alethia.web.db import close_db, get_db, init_db
 
@@ -281,6 +281,8 @@ class StreamingOrchestrator(Orchestrator):
                    value="enabled" if self.config.enable_backtracking else "disabled")
         self._emit("detail", label="Candidates/attempt",
                    value=str(self.config.candidates_per_attempt))
+        self._emit("detail", label="Diverse generation",
+                   value="enabled" if self.config.diverse_generation else "disabled")
 
         history: list[AttemptRecord] = []
         force_fresh_start = False
@@ -340,19 +342,34 @@ class StreamingOrchestrator(Orchestrator):
 
             # Generate candidates
             candidates: list[Solution] = []
-            for i in range(self.config.candidates_per_attempt):
-                if self.config.candidates_per_attempt > 1:
-                    self._emit("log", message=f"  Generating candidate {i+1}/{self.config.candidates_per_attempt}...")
-                else:
-                    self._emit("log", message="  Calling LLM to generate code...")
-                solution = self.generator.generate(
-                    problem, attempt, feedback, previous_code,
-                    previous_plan=previous_plan,
-                    fresh_start_hint=fresh_start_hint,
-                )
-                self._emit("code_preview", code=solution.code[:300],
-                           total_chars=len(solution.code))
-                candidates.append(solution)
+            use_diverse = self.config.diverse_generation and not history and not feedback
+            if use_diverse:
+                for strategy in DEFAULT_STRATEGIES:
+                    self._emit("log", message=f"  Generating with strategy '{strategy.name}' (temp={strategy.temperature})...")
+                    solution = self.generator.generate(
+                        problem, attempt,
+                        strategy_hint=strategy.hint,
+                        temperature_override=strategy.temperature,
+                    )
+                    solution.strategy = strategy.name
+                    self._emit("code_preview", code=solution.code[:300],
+                               total_chars=len(solution.code),
+                               strategy=strategy.name)
+                    candidates.append(solution)
+            else:
+                for i in range(self.config.candidates_per_attempt):
+                    if self.config.candidates_per_attempt > 1:
+                        self._emit("log", message=f"  Generating candidate {i+1}/{self.config.candidates_per_attempt}...")
+                    else:
+                        self._emit("log", message="  Calling LLM to generate code...")
+                    solution = self.generator.generate(
+                        problem, attempt, feedback, previous_code,
+                        previous_plan=previous_plan,
+                        fresh_start_hint=fresh_start_hint,
+                    )
+                    self._emit("code_preview", code=solution.code[:300],
+                               total_chars=len(solution.code))
+                    candidates.append(solution)
 
             # Verify each candidate
             best_solution: Solution | None = None
@@ -461,6 +478,7 @@ def _build_result_data(solve_result):
             "score": record.score,
             "verdict": record.verification.verdict.value,
             "code": record.solution.code,
+            "strategy": record.solution.strategy,
             "summary": record.verification.summary,
             "test_results": [],
         }
@@ -804,6 +822,9 @@ def solve_problem(slug: str):
     candidates = request.form.get("candidates", "").strip()
     if candidates:
         overrides["candidates_per_attempt"] = int(candidates)
+    diverse = request.form.get("diverse_generation")
+    if diverse == "off":
+        overrides["diverse_generation"] = False
 
     try:
         config = _config_for_current_user(**overrides)

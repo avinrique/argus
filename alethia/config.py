@@ -25,6 +25,7 @@ class Config:
     judge0_api_key: str = ""
     enable_backtracking: bool = True
     candidates_per_attempt: int = 1
+    diverse_generation: bool = True
     llm_provider: str = "openai"  # "openai" or "ollama"
     ollama_base_url: str = "http://localhost:11434/v1"
 
@@ -66,5 +67,9 @@ class Config:
         bt_val = os.environ.get("ALETHIA_ENABLE_BACKTRACKING")
         if bt_val is not None:
             kwargs.setdefault("enable_backtracking", bt_val.lower() not in ("0", "false", "no"))
+        # ALETHIA_DIVERSE_GENERATION: "0" or "false" disables
+        dg_val = os.environ.get("ALETHIA_DIVERSE_GENERATION")
+        if dg_val is not None:
+            kwargs.setdefault("diverse_generation", dg_val.lower() not in ("0", "false", "no"))
         kwargs.update(overrides)
         return cls(**kwargs)
